@@ -1,58 +1,69 @@
 import json
-import os
 from datetime import datetime
-
-CHAT_LOG_FILE = "chat_history.json"
-
-
-def _ensure_file():
-    if not os.path.exists(CHAT_LOG_FILE):
-        with open(CHAT_LOG_FILE, "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+from pathlib import Path
 
 
-def now_full():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+CHAT_TEXT_FILE = Path(__file__).with_name("chat.txt")
+CHAT_HISTORY_FILE = Path(__file__).with_name("chat_history.json")
 
 
-def now_time():
-    return datetime.now().strftime("%H:%M:%S")
+def _read_history() -> list[dict]:
+    if not CHAT_HISTORY_FILE.exists():
+        return []
+
+    try:
+        with CHAT_HISTORY_FILE.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    if isinstance(data, list):
+        return data
+
+    return []
 
 
-def load_history(limit=50):
-    _ensure_file()
-    with open(CHAT_LOG_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data[-limit:]
+def load_history() -> list[dict]:
+    return _read_history()
 
 
-def save_event(event: dict):
-    _ensure_file()
-    with open(CHAT_LOG_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    data.append(event)
-
-    with open(CHAT_LOG_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+def _write_history(history: list[dict]) -> None:
+    with CHAT_HISTORY_FILE.open("w", encoding="utf-8") as file:
+        json.dump(history, file, ensure_ascii=False, indent=2)
 
 
-def create_chat_message(message_id: int, username: str, message: str):
-    return {
-        "id": message_id,
-        "type": "chat",
-        "username": username,
+def _append_text_line(line: str) -> None:
+    with CHAT_TEXT_FILE.open("a", encoding="utf-8") as file:
+        file.write(line + "\n")
+
+
+def _build_entry(entry_type: str, message: str, username: str | None = None) -> dict:
+    history = _read_history()
+    now = datetime.now()
+
+    entry = {
+        "id": len(history) + 1,
+        "type": entry_type,
         "message": message,
-        "time": now_time(),
-        "created_at": now_full(),
+        "time": now.strftime("%H:%M:%S"),
+        "created_at": now.strftime("%Y-%m-%d %H:%M:%S"),
     }
 
+    if username:
+        entry["username"] = username
 
-def create_system_message(message_id: int, message: str):
-    return {
-        "id": message_id,
-        "type": "system",
-        "message": message,
-        "time": now_time(),
-        "created_at": now_full(),
-    }
+    history.append(entry)
+    _write_history(history)
+    return entry
+
+
+def save_system_message(message: str) -> dict:
+    entry = _build_entry("system", message)
+    _append_text_line(f"[{entry['time']}] {message}")
+    return entry
+
+
+def save_chat_message(username: str, message: str) -> dict:
+    entry = _build_entry("chat", message, username=username)
+    _append_text_line(f"[{entry['time']}] {username}: {message}")
+    return entry

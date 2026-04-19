@@ -1,106 +1,136 @@
-const statusText = document.getElementById("status");
-const usernameInput = document.getElementById("username");
-const joinBtn = document.getElementById("join-btn");
-const onlineCount = document.getElementById("online-count");
-const userList = document.getElementById("user-list");
-const chatBox = document.getElementById("chat-box");
-const messageInput = document.getElementById("message-input");
-const sendBtn = document.getElementById("send-btn");
+const messages = document.getElementById("messages");
+const usernameInput = document.getElementById("usernameInput");
+const joinButton = document.getElementById("joinButton");
+const messageInput = document.getElementById("messageInput");
+const sendButton = document.getElementById("sendButton");
 
 const socket = new WebSocket("ws://localhost:8000/ws");
 
-let currentUser = "";
 let joined = false;
-let renderedIds = new Set();
-//
-socket.onopen = () => {
-  statusText.textContent = "Сервертэй холбогдлоо ";
+let currentUsername = "";
+
+function getInitials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) {
+    return "?";
+  }
+
+  return parts
+    .slice(0, 2)
+    .map(function (part) {
+      return part[0].toUpperCase();
+    })
+    .join("");
+}
+
+function appendEntry(entry) {
+  if (entry.type === "system") {
+    const element = document.createElement("div");
+    element.className = "system-message";
+    element.textContent = `[${entry.time}] ${entry.message}`;
+    messages.appendChild(element);
+  } else if (entry.type === "chat") {
+    const row = document.createElement("div");
+    const isMine = entry.username === currentUsername;
+
+    row.className = isMine ? "message-row my-message" : "message-row other-message";
+
+    const avatar = document.createElement("div");
+    avatar.className = "message-avatar";
+    avatar.textContent = getInitials(entry.username);
+
+    const element = document.createElement("div");
+    element.className = "message";
+
+    const meta = document.createElement("div");
+    meta.className = "message-meta";
+    meta.textContent = `${entry.username} | ${entry.time}`;
+
+    const text = document.createElement("div");
+    text.textContent = entry.message;
+
+    element.appendChild(meta);
+    element.appendChild(text);
+
+    if (isMine) {
+      row.appendChild(element);
+    } else {
+      row.appendChild(avatar);
+      row.appendChild(element);
+    }
+
+    messages.appendChild(row);
+  } else {
+    return;
+  }
+
+  messages.scrollTop = messages.scrollHeight;
+}
+
+socket.onerror = function () {
+  console.error("WebSocket connection failed. Make sure the backend server is running on port 8000.");
 };
 
-socket.onclose = () => {
-  statusText.textContent = "Серверээс саллаа ❌";
+socket.onclose = function () {
+  console.error("WebSocket connection closed.");
 };
 
-socket.onerror = () => {
-  statusText.textContent = "Холболтын алдаа ⚠️";
-};
-
-socket.onmessage = (event) => {
+socket.onmessage = function (event) {
   const data = JSON.parse(event.data);
 
   if (data.type === "history") {
-    onlineCount.textContent = data.online_count ?? 0;
-    renderUserList(data.users || []);
-    (data.messages || []).forEach(renderIncomingMessage);
+    messages.innerHTML = "";
+    data.messages.forEach(appendEntry);
     return;
   }
 
-  if (data.type === "online_users") {
-    onlineCount.textContent = data.online_count ?? 0;
-    renderUserList(data.users || []);
-    return;
-  }
-
-  if (data.type === "error") {
-    addErrorMessage(data.message);
-    return;
-  }
-
-  renderIncomingMessage(data);
+  appendEntry(data);
 };
-
-function renderIncomingMessage(data) {
-  if (data.id && renderedIds.has(data.id)) return;
-  if (data.id) renderedIds.add(data.id);
-
-  if (data.type === "system") {
-    addSystemMessage(`${data.message} (${data.time})`);
-    return;
-  }
-
-  if (data.type === "chat") {
-    const messageType = data.username === currentUser ? "me" : "other";
-    addMessage(data.username, data.message, data.time, messageType);
-  }
-}
 
 function joinChat() {
   const username = usernameInput.value.trim();
 
-  if (!username) {
-    addErrorMessage("Нэрээ оруулна уу.");
+  if (username === "") {
     return;
   }
 
-  if (joined) return;
+  if (socket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket is not connected yet.");
+    return;
+  }
 
-  currentUser = username;
   socket.send(
     JSON.stringify({
-      type: "join",
+      action: "join",
       username: username,
     })
   );
 
+  currentUsername = username;
   joined = true;
   usernameInput.disabled = true;
-  joinBtn.disabled = true;
-  joinBtn.textContent = "Нэгдсэн";
+  joinButton.disabled = true;
+  messageInput.disabled = false;
+  sendButton.disabled = false;
+  messageInput.focus();
 }
 
 function sendMessage() {
   const message = messageInput.value.trim();
 
-  if (!joined) {
-    addErrorMessage("Эхлээд чатад нэгдэнэ үү.");
+  if (!joined || message === "") {
     return;
   }
 
-  if (!message) return;
+  if (socket.readyState !== WebSocket.OPEN) {
+    console.error("WebSocket is not connected yet.");
+    return;
+  }
 
   socket.send(
     JSON.stringify({
-      type: "chat",
+      action: "message",
       message: message,
     })
   );
@@ -109,61 +139,17 @@ function sendMessage() {
   messageInput.focus();
 }
 
-function addMessage(username, message, time, type) {
-  const div = document.createElement("div");
-  div.className = `message ${type}`;
-  div.innerHTML = `
-    <div class="meta">${escapeHtml(username)}</div>
-    <div>${escapeHtml(message)}</div>
-    <div class="time">${escapeHtml(time || "")}</div>
-  `;
-  chatBox.appendChild(div);
-  scrollToBottom();
-}
+joinButton.addEventListener("click", joinChat);
+sendButton.addEventListener("click", sendMessage);
 
-function addSystemMessage(message) {
-  const div = document.createElement("div");
-  div.className = "system-message";
-  div.textContent = message;
-  chatBox.appendChild(div);
-  scrollToBottom();
-}
-
-function addErrorMessage(message) {
-  const div = document.createElement("div");
-  div.className = "error-message";
-  div.textContent = message;
-  chatBox.appendChild(div);
-  scrollToBottom();
-}
-
-function renderUserList(users) {
-  userList.innerHTML = "";
-
-  users.forEach((user) => {
-    const li = document.createElement("li");
-    li.textContent = user;
-    userList.appendChild(li);
-  });
-}
-
-function scrollToBottom() {
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-joinBtn.addEventListener("click", joinChat);
-sendBtn.addEventListener("click", sendMessage);
-
-usernameInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") joinChat();
+usernameInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    joinChat();
+  }
 });
 
-messageInput.addEventListener("keypress", (e) => {
-  if (e.key === "Enter") sendMessage();
+messageInput.addEventListener("keydown", function (event) {
+  if (event.key === "Enter") {
+    sendMessage();
+  }
 });

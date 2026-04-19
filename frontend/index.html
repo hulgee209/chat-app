@@ -1,48 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mn">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Simple Chat</title>
+    <title>Chat</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="chat-container">
-      <div class="chat-header">
-        <div class="chat-title-group">
-          <div class="room-badge">Live Room</div>
-          <h1>Real-Time Chat</h1>
-          <p class="subtitle">Join the room and send messages instantly.</p>
+    <div class="page-shell">
+      <div class="chat-container">
+        <div class="chat-header">
+          <div class="chat-title-group">
+            <div class="room-badge">4-р баг</div>
+            <h1>Chatly</h1>
+            <p class="subtitle">
+              Чат өрөөнд нэгдэж, бусадтай шууд холбогдоорой.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div class="join-area">
-        <div class="field-group">
-          <label for="usernameInput">Your name</label>
-          <input
-            type="text"
-            id="usernameInput"
-            placeholder="Enter your name"
-            autocomplete="off"
-          />
+        <div class="join-area">
+          <div class="field-group">
+            <label for="usernameInput">Таны нэр</label>
+            <input
+              type="text"
+              id="usernameInput"
+              placeholder="Нэрээ оруулна уу"
+              autocomplete="off"
+            />
+          </div>
+          <button id="joinButton">Нэгдэх</button>
         </div>
-        <button id="joinButton">Join</button>
-      </div>
 
-      <div id="messages" class="messages"></div>
+        <div id="messages" class="messages"></div>
 
-      <div class="input-area">
-        <div class="field-group">
-          <label for="messageInput">Message</label>
-          <input
-            type="text"
-            id="messageInput"
-            placeholder="Type a message"
-            autocomplete="off"
-            disabled
-          />
+        <div class="input-area">
+          <div class="field-group">
+            <label for="messageInput">Мессеж</label>
+            <input
+              type="text"
+              id="messageInput"
+              placeholder="Мессежээ бичнэ үү"
+              autocomplete="off"
+              disabled
+            />
+          </div>
+          <button id="sendButton" disabled>Илгээх</button>
         </div>
-        <button id="sendButton" disabled>Send</button>
       </div>
     </div>
 

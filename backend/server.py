@@ -1,5 +1,4 @@
 import json
-from datetime import datetime
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -8,8 +7,23 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from client_handler import connect, disconnect, broadcast, get_online_count
-from storage import save_message, save_system_message
+from client_handler import (
+    connect,
+    disconnect,
+    broadcast,
+    send_to_one,
+    get_online_count,
+    get_online_users,
+    set_username,
+    get_username,
+    is_username_taken,
+)
+from storage import (
+    load_history,
+    save_event,
+    create_chat_message,
+    create_system_message,
+)
 
 app = FastAPI()
 
@@ -24,8 +38,24 @@ app.add_middleware(
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 
-# css, js файлуудыг static байдлаар serve хийнэ
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+
+message_id_counter = 1
+
+
+def next_message_id():
+    global message_id_counter
+    current = message_id_counter
+    message_id_counter += 1
+    return current
+
+
+def build_online_payload():
+    return {
+        "type": "online_users",
+        "online_count": get_online_count(),
+        "users": get_online_users(),
+    }
 
 
 @app.get("/")
@@ -33,82 +63,120 @@ async def home():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
-def now_time():
-    return datetime.now().strftime("%H:%M:%S")
-
-
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await connect(websocket)
-    username = "Unknown user"
 
     try:
+        history = load_history(50)
+        await send_to_one(
+            websocket,
+            json.dumps(
+                {
+                    "type": "history",
+                    "messages": history,
+                    "online_count": get_online_count(),
+                    "users": get_online_users(),
+                },
+                ensure_ascii=False,
+            ),
+        )
+
+        await broadcast(json.dumps(build_online_payload(), ensure_ascii=False))
+
         while True:
             raw_data = await websocket.receive_text()
             data = json.loads(raw_data)
 
-            message_type = data.get("type")
+            msg_type = data.get("type")
 
-            if message_type == "join":
+            if msg_type == "join":
                 username = data.get("username", "").strip()
 
                 if not username:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Нэр хоосон байж болохгүй."
-                    }, ensure_ascii=False))
+                    await send_to_one(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": "Нэр хоосон байж болохгүй.",
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
                     continue
 
-                system_message = f"{username} чатад нэгдлээ."
-                save_system_message(system_message)
+                if is_username_taken(username):
+                    await send_to_one(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": "Энэ нэр ашиглагдаж байна. Өөр нэр сонгоно уу.",
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
+                    continue
 
-                await broadcast(json.dumps({
-                    "type": "system",
-                    "message": system_message,
-                    "time": now_time(),
-                    "online": get_online_count()
-                }, ensure_ascii=False))
+                set_username(websocket, username)
 
-            elif message_type == "chat":
-                username = data.get("username", "").strip()
+                system_event = create_system_message(
+                    next_message_id(), f"{username} чатад нэгдлээ."
+                )
+                save_event(system_event)
+
+                await broadcast(json.dumps(system_event, ensure_ascii=False))
+                await broadcast(json.dumps(build_online_payload(), ensure_ascii=False))
+
+            elif msg_type == "chat":
+                username = get_username(websocket)
                 message = data.get("message", "").strip()
 
                 if not username:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Нэрээ оруулна уу."
-                    }, ensure_ascii=False))
+                    await send_to_one(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": "Эхлээд чатад нэгдэнэ үү.",
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
                     continue
 
                 if not message:
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": "Хоосон мессеж илгээж болохгүй."
-                    }, ensure_ascii=False))
+                    await send_to_one(
+                        websocket,
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": "Хоосон мессеж илгээж болохгүй.",
+                            },
+                            ensure_ascii=False,
+                        ),
+                    )
                     continue
 
-                save_message(username, message)
-
-                await broadcast(json.dumps({
-                    "type": "chat",
-                    "username": username,
-                    "message": message,
-                    "time": now_time()
-                }, ensure_ascii=False))
+                chat_event = create_chat_message(
+                    next_message_id(), username, message
+                )
+                save_event(chat_event)
+                await broadcast(json.dumps(chat_event, ensure_ascii=False))
 
     except WebSocketDisconnect:
+        username = get_username(websocket)
         await disconnect(websocket)
 
-        if username != "Unknown user":
-            system_message = f"{username} чатнаас гарлаа."
-            save_system_message(system_message)
+        if username:
+            system_event = create_system_message(
+                next_message_id(), f"{username} чатнаас гарлаа."
+            )
+            save_event(system_event)
+            await broadcast(json.dumps(system_event, ensure_ascii=False))
 
-            await broadcast(json.dumps({
-                "type": "system",
-                "message": system_message,
-                "time": now_time(),
-                "online": get_online_count()
-            }, ensure_ascii=False))
+        await broadcast(json.dumps(build_online_payload(), ensure_ascii=False))
 
 
 if __name__ == "__main__":

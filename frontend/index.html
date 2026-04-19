@@ -3,33 +3,44 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Realtime Chat App</title>
+  <title>Realtime Chat</title>
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-  <div class="chat-container">
-    <div class="chat-header">
-      <div>
-        <h1>💬 Realtime Chat</h1>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Chat</h1>
         <p id="status">Сервертэй холбогдож байна...</p>
       </div>
-      <div class="online-box">
-        <span>Online</span>
-        <strong id="online-count">0</strong>
+
+      <div class="join-box">
+        <input type="text" id="username" placeholder="Нэрээ оруулна уу" />
+        <button id="join-btn">Нэгдэх</button>
       </div>
-    </div>
 
-    <div class="user-section">
-      <input type="text" id="username" placeholder="Нэрээ оруулна уу" />
-      <button id="join-btn">Нэгдэх</button>
-    </div>
+      <div class="online-panel">
+        <div class="online-header">
+          <span>Online users</span>
+          <strong id="online-count">0</strong>
+        </div>
+        <ul id="user-list" class="user-list"></ul>
+      </div>
+    </aside>
 
-    <div id="chat-box" class="chat-box"></div>
+    <main class="chat-panel">
+      <div id="chat-box" class="chat-box"></div>
 
-    <div class="input-section">
-      <input type="text" id="message-input" placeholder="Мессеж бичнэ үү..." />
-      <button id="send-btn">Илгээх</button>
-    </div>
+      <div class="input-section">
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Мессеж бичнэ үү..."
+          autocomplete="off"
+        />
+        <button id="send-btn">Илгээх</button>
+      </div>
+    </main>
   </div>
 
   <script src="/static/script.js"></script>

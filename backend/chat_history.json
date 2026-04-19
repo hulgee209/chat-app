@@ -1,0 +1,99 @@
+[
+  {
+    "id": 1,
+    "type": "system",
+    "message": "mokhtsetsen чатад нэгдлээ.",
+    "time": "20:44:26",
+    "created_at": "2026-04-19 20:44:26"
+  },
+  {
+    "id": 2,
+    "type": "chat",
+    "username": "mokhtsetsen",
+    "message": "Hi! Monkhtsetsen baina",
+    "time": "20:44:42",
+    "created_at": "2026-04-19 20:44:42"
+  },
+  {
+    "id": 3,
+    "type": "system",
+    "message": "Deegii чатад нэгдлээ.",
+    "time": "20:44:59",
+    "created_at": "2026-04-19 20:44:59"
+  },
+  {
+    "id": 4,
+    "type": "chat",
+    "username": "Deegii",
+    "message": "hi Deegii baina aa",
+    "time": "20:45:06",
+    "created_at": "2026-04-19 20:45:06"
+  },
+  {
+    "id": 5,
+    "type": "system",
+    "message": "Jargalmaa чатад нэгдлээ.",
+    "time": "20:45:18",
+    "created_at": "2026-04-19 20:45:18"
+  },
+  {
+    "id": 6,
+    "type": "chat",
+    "username": "Jargalmaa",
+    "message": "hi Jargalmaa baina",
+    "time": "20:45:25",
+    "created_at": "2026-04-19 20:45:25"
+  },
+  {
+    "id": 7,
+    "type": "system",
+    "message": "mokhtsetsen чатнаас гарлаа.",
+    "time": "20:45:28",
+    "created_at": "2026-04-19 20:45:28"
+  },
+  {
+    "id": 8,
+    "type": "system",
+    "message": "Bathuleg чатад нэгдлээ.",
+    "time": "20:45:55",
+    "created_at": "2026-04-19 20:45:55"
+  },
+  {
+    "id": 9,
+    "type": "chat",
+    "username": "Bathuleg",
+    "message": "hi Bathuleg baina",
+    "time": "20:46:02",
+    "created_at": "2026-04-19 20:46:02"
+  },
+  {
+    "id": 10,
+    "type": "system",
+    "message": "Tumen-Amgalan чатад нэгдлээ.",
+    "time": "20:46:44",
+    "created_at": "2026-04-19 20:46:44"
+  },
+  {
+    "id": 11,
+    "type": "chat",
+    "username": "Tumen-Amgalan",
+    "message": "Hi Tumen-Amgalan baina",
+    "time": "20:46:52",
+    "created_at": "2026-04-19 20:46:52"
+  },
+  {
+    "id": 12,
+    "type": "system",
+    "message": "Narmandah чатад нэгдлээ.",
+    "time": "20:47:11",
+    "created_at": "2026-04-19 20:47:11"
+  },
+  {
+    "id": 13,
+    "type": "chat",
+    "username": "Narmandah",
+    "message": "Hi Narmandah baina",
+    "time": "20:47:18",
+    "created_at": "2026-04-19 20:47:18"
+  }
+]
